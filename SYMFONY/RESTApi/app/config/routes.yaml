@@ -1,0 +1,6 @@
+api_login_check:
+  path: /api/login_check
+
+gesdinet_jwt_refreshtoken:
+  path: /api/token/refresh
+  controller: gesdinet.jwtrefreshtoken::refresh

@@ -1,0 +1,87 @@
+version: '3.8'
+
+networks:
+  symf_docker_net:
+
+services:
+  #php service configuration
+  php-service:
+    build:
+      context: ./ #build->context-> Dockerfile from which php-service will be created
+      dockerfile: ./php/Dockerfile
+    container_name: php-container #sepcify the container name
+    ports:
+      - '9000:9000' #first port is port on local machine and the second one is the basic port for php
+    volumes:
+      - ./app:/var/www/project #volumes are used to specify where the service should be used locally and on docker "virtually"
+    depends_on: #depends_on is used for specifying on which service is this service dependent
+      - mysql-service
+    networks:
+      symf_docker_net:
+        aliases:
+          - php-fpm
+
+  web:
+    image: nginx
+    container_name: web-container
+    volumes:
+      - ./app:/var/www/project
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+    ports:
+      - '80:80'
+    depends_on:
+      - php-service
+      - mysql-service
+    networks:
+      symf_docker_net:
+        aliases:
+          - nginx-web
+
+  #mysql service configuration
+  mysql-service:
+    image: mysql
+    container_name: mysql-container
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      - MYSQL_ROOT_PASSWORD=password
+      - MYSQL_PASSWORD=password
+    ports:
+      - 3306:3306
+    restart: always
+    volumes:
+      - ./mysql:/var/lib/mysql
+    networks:
+      symf_docker_net:
+        aliases:
+          - mysql
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin_container
+    environment:
+      - PMA_ARBITRARY=1
+    restart: always
+    ports:
+      - '8080:80'
+    depends_on:
+      - mysql-service
+    networks:
+      symf_docker_net:
+        aliases:
+          - phpmyadmin
+  node:
+    image: node:latest
+    user: 'node'
+    container_name: node-container
+    working_dir: /var/www/project
+    environment:
+      - NODE_ENV=production
+    volumes:
+      - ./app:/var/www/project
+    expose:
+      - 8000
+    command: 'npm run watch'
+    networks:
+      symf_docker_net:
+        aliases:
+          - node
